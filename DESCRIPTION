@@ -6,7 +6,7 @@ Author: Anna Barbayeva
 Maintainer: Anna Barbayeva <anna.barbayeva@gmail.com>
 Description: The package provides functions to get current and historical EUR-USD exchange rates. 
 License: GPL-3
-Encoding: UTF-8
+Encoding: UTF-32
 LazyData: true
 Import: httr, data.table, lubridate, logger
 RoxygenNote: 6.1.1
