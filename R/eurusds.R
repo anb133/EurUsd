@@ -31,6 +31,7 @@ eurusds <- function(date_from, date_to) {
       date = as.Date(names(exchange_rates)),
       eurusd = as.numeric(unlist(exchange_rates))
    )
+   eurusds <- eurusds[order(date)]
    log_debug('Loaded exchange rates for {paste(min(eurusds$date), max(eurusds$date), sep = "-")}')
    return(eurusds)
 }
