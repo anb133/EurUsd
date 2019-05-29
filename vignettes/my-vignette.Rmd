@@ -1,0 +1,78 @@
+---
+title: "Demo of `eur` and `eurusds` functions"
+author: "Anna Barbayeva"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+*The goal of this vignette is to demonstrate how `eur` and `eurusds` functions can be applied by using them in Bitocoin report generation.*
+
+#### Load all packages 
+```{r, results='hide'}
+library(EurUsd)
+library(binancer)
+library(data.table)
+library(ggplot2)
+library(scales)
+library(pander)
+```
+
+### 1. Fetch the Daily Volume of Bitcoins
+The daily volume and close prices of Bitcoins sold for "USDT" on Binance for the last 45 days can be fetched with the help of `binance_klines` from the `binancer` package: 
+```{r}
+# Getting data
+coin_prices <- binance_klines('BTCUSDT', interval = '1d', limit = 45) 
+
+# Keeping only relevant columns
+BTC_45_days <- coin_prices[, .(date = as.Date(close_time), btcusd = close, volume)] 
+
+# Set Key (for further merge)
+setkey(BTC_45_days, date)
+```
+
+### 2. Get EUR/USD exchange rates
+The exchange rates can be fetched with the help of `eurusds` function for specified dates:
+```{r}
+# Get the first and the last dates for which exchange rates should be fetched
+date_from <- min(BTC_45_days$date)
+date_to <- max(BTC_45_days$date)
+
+# Get the exchange rates
+exchange_rates <- eurusds(date_from, date_to)
+
+# Set Key (for further merge)
+setkey(exchange_rates, date)
+```
+
+### 3. Put all information together
+Merge the tables by date. Note that the Foreign Exchange market is closed on holidays and weekends, therefore for the days with the missing exchange rate the latest rate available would be used. 
+```{r, results='asis'}
+# Merge the tables
+BTC_45_days <- exchange_rates[BTC_45_days, roll = TRUE] 
+
+# Get the total value ein Euro 
+BTC_45_days[, value_eur := btcusd * volume * eurusd] 
+
+# Show first entires of the table
+pandoc.table(head(BTC_45_days))
+```
+
+### 4. Create a plot
+Now, as all necessary information is fetched, the plot is created. Note the usage of `eur` function in the last line: it formats numeric values on the Y-axis as Euros. 
+```{r, fig.width = 7}
+ggplot(BTC_45_days, aes(as.POSIXct(date), value_eur)) + 
+  geom_line(aes(col = value_eur), size = 2) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(vjust = 0.5), panel.grid.major = element_line(colour = "darkgrey"), 
+        legend.position = 'None') + 
+    labs(x = '', y = '', title = 'Overall Value of Bitcoins Sold in EUR', 
+       subtitle = paste0(date_format('%B %d')(date_from), ' - ', date_format('%B %d')(date_to), ', ', 
+                         date_format('%Y')(date_to))) + 
+  scale_x_datetime(breaks = "5 day", labels = date_format("%d-%B"), minor_breaks = "1 day") + 
+  scale_color_continuous(low = 'royalblue', high = 'olivedrab2') + 
+  scale_y_continuous(labels = eur) 
+```
+
