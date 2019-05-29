@@ -8,5 +8,5 @@
 #' eur(123.45678912345)
 #'
 eur <- function(x) {
-   scales::dollar(x, prefix = '€', big.mark = ',')
+   scales::dollar(x, prefix = '\u20ac', big.mark = ',')
 }
